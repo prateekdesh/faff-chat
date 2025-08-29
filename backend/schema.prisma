@@ -1,13 +1,12 @@
-// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
   provider  = "postgresql"
   url  	    = env("DATABASE_URL")
-  // uncomment next line if you use Prisma <5.10
-  // directUrl = env("DATABASE_URL_UNPOOLED")
+  extensions = [vector]
 }
 
 model User {
@@ -17,7 +16,6 @@ model User {
   password_hash String
   created_at DateTime @default(now())
 
-  // Relations
   sentMessages     Message[] @relation("MessageSender")
   receivedMessages Message[] @relation("MessageReceiver")
 
@@ -29,9 +27,9 @@ model Message {
   sender_id  String
   receiver_id String
   message    String
+  embedding  Unsupported("vector(384)")?
   created_at DateTime @default(now())
 
-  // Relations
   sender     User     @relation("MessageSender", fields: [sender_id], references: [id], onDelete: Cascade)
   receiver   User     @relation("MessageReceiver", fields: [receiver_id], references: [id], onDelete: Cascade)
 

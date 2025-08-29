@@ -18,6 +18,10 @@
             </ul>
         </div>
         <div class="main-chat">
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search messages semantically..." />
+                <button id="search-button">🔍 Search</button>
+            </div>
             <div class="chat-window" id="chat-window">
                 <!-- Messages will be loaded here -->
             </div>
@@ -61,6 +65,20 @@
             </form>
         </div>
     </div>
+    
+    <!-- Search Results Modal -->
+    <div id="search-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Search Results</h3>
+                <span class="close-modal" id="close-modal">&times;</span>
+            </div>
+            <div class="modal-body" id="search-results">
+                <!-- Search results will be displayed here -->
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <script src="script.js"></script>
 </body>

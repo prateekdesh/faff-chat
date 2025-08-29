@@ -4,6 +4,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const messageInput = document.getElementById('message-input');
     const sendButton = document.getElementById('send-button');
 
+    // Search elements
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    const searchModal = document.getElementById('search-modal');
+    const closeModal = document.getElementById('close-modal');
+    const searchResults = document.getElementById('search-results');
+
     let currentUser = null;
     let currentRoom = null;
     let socket = null;
@@ -391,4 +398,117 @@ document.addEventListener('DOMContentLoaded', function() {
             sendMessage();
         }
     });
+
+    // Search functionality
+    if (searchButton) {
+        searchButton.addEventListener('click', performSearch);
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+    }
+
+    // Close modal when clicking the close button
+    if (closeModal) {
+        closeModal.addEventListener('click', closeSearchModal);
+    }
+
+    // Close modal when clicking outside
+    if (searchModal) {
+        searchModal.addEventListener('click', function(e) {
+            if (e.target === searchModal) {
+                closeSearchModal();
+            }
+        });
+    }
+
+    // Search function
+    async function performSearch() {
+        const query = searchInput.value.trim();
+        if (!query) {
+            alert('Please enter a search query.');
+            return;
+        }
+
+        if (!currentUserData) {
+            alert('Please log in to search messages.');
+            return;
+        }
+
+        try {
+            searchButton.disabled = true;
+            searchButton.textContent = 'Searching...';
+
+            const response = await fetch(`${BACKEND_URL}/api/messages/semantic-search?userId=${currentUserData.id}&q=${encodeURIComponent(query)}`, {
+                headers: {
+                    'Authorization': `Bearer ${authToken}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                displaySearchResults(data.data, query);
+                showSearchModal();
+            } else {
+                alert(data.error || 'Search failed');
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            alert('Search failed. Please try again.');
+        } finally {
+            searchButton.disabled = false;
+            searchButton.textContent = '🔍 Search';
+        }
+    }
+
+    // Display search results in modal
+    function displaySearchResults(results, query) {
+        searchResults.innerHTML = '';
+
+        if (results.length === 0) {
+            searchResults.innerHTML = '<div class="no-results">No messages found matching your search.</div>';
+            return;
+        }
+
+        results.forEach(result => {
+            const resultElement = document.createElement('div');
+            resultElement.className = 'search-result';
+
+            const timestamp = new Date(result.created_at).toLocaleString();
+            const score = (result.score * 100).toFixed(1);
+
+            resultElement.innerHTML = `
+                <div class="search-result-message">${result.message}</div>
+                <div class="search-result-meta">
+                    <span class="search-result-timestamp">${timestamp}</span>
+                    <span class="search-result-score">${score}% match</span>
+                </div>
+            `;
+
+            searchResults.appendChild(resultElement);
+        });
+    }
+
+    // Show search modal
+    function showSearchModal() {
+        if (searchModal) {
+            searchModal.style.display = 'block';
+        }
+    }
+
+    // Close search modal
+    function closeSearchModal() {
+        if (searchModal) {
+            searchModal.style.display = 'none';
+        }
+        // Clear search input
+        if (searchInput) {
+            searchInput.value = '';
+        }
+    }
 });

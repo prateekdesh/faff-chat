@@ -5,6 +5,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 const prisma = require('./prisma/client');
+const embeddingService = require('./services/embeddingService');
 require('dotenv').config();
 
 const app = express();
@@ -38,7 +39,6 @@ app.use('/api/messages', require('./routes/messages'));
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
-  // Authenticate socket connection
   socket.on('authenticate', (token) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -52,7 +52,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Join a chat room
   socket.on('join-room', (data) => {
     if (!socket.userId) {
       socket.emit('unauthorized', { message: 'Please authenticate first' });
@@ -65,13 +64,11 @@ io.on('connection', (socket) => {
     socket.emit('room-joined', { roomId });
   });
 
-  // Leave a chat room
   socket.on('leave-room', (roomId) => {
     socket.leave(roomId);
     console.log(`User ${socket.userId} left room ${roomId}`);
   });
 
-  // Handle chat messages
   socket.on('send-message', async (data) => {
     if (!socket.userId) {
       socket.emit('unauthorized', { message: 'Please authenticate first' });
@@ -81,24 +78,72 @@ io.on('connection', (socket) => {
     try {
       const { receiver_id, message } = data;
 
-      // Save message to database
-      const newMessage = await prisma.message.create({
-        data: {
-          sender_id: socket.userId,
-          receiver_id,
-          message: message.trim()
-        },
-        include: {
-          sender: {
-            select: { id: true, name: true }
-          },
-          receiver: {
-            select: { id: true, name: true }
-          }
-        }
-      });
+      let embedding;
+      try {
+        embedding = await embeddingService.generateEmbedding(message.trim());
+      } catch (error) {
+        console.error('Embedding generation error:', error.message);
+        embedding = null;
+      }
 
-      // Send to room
+      let newMessage;
+      if (embedding) {
+        try {
+          const vectorString = '[' + embedding.join(',') + ']';
+          const result = await prisma.$queryRaw`
+            INSERT INTO messages (id, sender_id, receiver_id, message, embedding, created_at)
+            VALUES (gen_random_uuid(), ${socket.userId}, ${receiver_id}, ${message.trim()}, ${vectorString}::vector, NOW())
+            RETURNING id, sender_id, receiver_id, message, created_at
+          `;
+
+          const messageId = result[0].id;
+          newMessage = await prisma.message.findUnique({
+            where: { id: messageId },
+            include: {
+              sender: {
+                select: { id: true, name: true }
+              },
+              receiver: {
+                select: { id: true, name: true }
+              }
+            }
+          });
+        } catch (sqlError) {
+          console.error('Raw SQL insert failed:', sqlError.message);
+          newMessage = await prisma.message.create({
+            data: {
+              sender_id: socket.userId,
+              receiver_id,
+              message: message.trim()
+            },
+            include: {
+              sender: {
+                select: { id: true, name: true }
+              },
+              receiver: {
+                select: { id: true, name: true }
+              }
+            }
+          });
+        }
+      } else {
+        newMessage = await prisma.message.create({
+          data: {
+            sender_id: socket.userId,
+            receiver_id,
+            message: message.trim()
+          },
+          include: {
+            sender: {
+              select: { id: true, name: true }
+            },
+            receiver: {
+              select: { id: true, name: true }
+            }
+          }
+        });
+      }
+
       const roomId = [socket.userId, receiver_id].sort().join('-');
       io.to(roomId).emit('receive-message', newMessage);
 
@@ -108,7 +153,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle typing indicators
   socket.on('typing', (data) => {
     if (!socket.userId) return;
 
@@ -121,7 +165,6 @@ io.on('connection', (socket) => {
     });
   });
 
-  // Handle disconnect
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
   });
