@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Interface</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>Users</h2>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+            <ul id="user-list">
+                <!-- Users will be loaded dynamically -->
+            </ul>
+        </div>
+        <div class="main-chat">
+            <div class="chat-window" id="chat-window">
+                <!-- Messages will be loaded here -->
+            </div>
+            <div class="input-area">
+                <input type="text" id="message-input" placeholder="Type a message..." />
+                <button id="send-button">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authentication Container -->
+    <div id="auth-container" style="display: none;">
+        <div class="auth-wrapper">
+            <!-- Login Form -->
+            <form id="login-form" class="auth-form">
+                <h2>Login</h2>
+                <div class="form-group">
+                    <input type="email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="auth-btn">Login</button>
+                <p class="auth-link">Don't have an account? <a href="#" id="show-register">Register</a></p>
+            </form>
+
+            <!-- Register Form -->
+            <form id="register-form" class="auth-form" style="display: none;">
+                <h2>Register</h2>
+                <div class="form-group">
+                    <input type="text" name="name" placeholder="Full Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" name="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="submit" class="auth-btn">Register</button>
+                <p class="auth-link">Already have an account? <a href="#" id="show-login">Login</a></p>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
