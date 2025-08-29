@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentUserData = null;
 
     // Backend configuration
-    const BACKEND_URL = 'http://localhost:3001';
+    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 
     // DOM elements for auth
     const loginForm = document.getElementById('login-form');
